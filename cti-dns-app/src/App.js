@@ -14,14 +14,29 @@ function App() {
     }
   }, []);
 
-  const handleSearch = (query) => {
-    // In a real application, you would make an API call here.
-    // For this example, we'll just return some mock data.
-    const mockResults = [
-      { timestamp: '2023-01-01 12:34:56', ip: '192.168.1.1', type: 'A', value: 'example.com' },
-      { timestamp: '2023-01-01 12:34:57', ip: '192.168.1.2', type: 'AAAA', value: 'example.com' },
-    ];
-    setResults(mockResults);
+  const handleSearch = async (query) => {
+    if (!user) {
+      alert('Please log in to perform a search.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:3001/api/virustotal/domain/${query}`, {
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+        },
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setResults(data);
+      } else {
+        console.error('Failed to fetch domain info:', data.error);
+        setResults([]);
+      }
+    } catch (error) {
+      console.error('Error fetching domain info:', error);
+      setResults([]);
+    }
   };
 
   const handleGoogleLoginSuccess = async (credentialResponse) => {

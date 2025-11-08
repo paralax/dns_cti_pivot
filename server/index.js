@@ -5,6 +5,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { Low } from 'lowdb';
 import { JSONFile } from 'lowdb/node';
 import 'dotenv/config';
+import fetch from 'node-fetch';
 
 const adapter = new JSONFile('db.json');
 const db = new Low(adapter);
@@ -100,6 +101,42 @@ app.post('/api/user/apikey', verifyUser, async (req, res) => {
   await db.write();
 
   res.status(200).json({ message: 'API key saved successfully' });
+});
+
+// Endpoint to proxy VirusTotal domain lookups
+app.get('/api/virustotal/domain/:domain', verifyUser, async (req, res) => {
+  const { domain } = req.params;
+  const { virustotalApiKey } = req.user;
+
+  if (!virustotalApiKey) {
+    return res.status(400).json({ error: 'VirusTotal API key is missing' });
+  }
+
+  try {
+    const response = await fetch(`https://www.virustotal.com/api/v3/domains/${domain}`, {
+      headers: {
+        'x-apikey': virustotalApiKey,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      return res.status(response.status).json(errorData);
+    }
+
+    const data = await response.json();
+    const dnsRecords = data.data.attributes.last_dns_records.map(record => ({
+      timestamp: new Date(data.data.attributes.last_dns_records_date * 1000).toISOString(),
+      ip: record.value,
+      type: record.type,
+      value: record.value,
+    }));
+
+    res.status(200).json(dnsRecords);
+  } catch (error) {
+    console.error('Error fetching data from VirusTotal:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 

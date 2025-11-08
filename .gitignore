@@ -12,6 +12,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 /cti-dns-app/npm_output.log
+/server/server_output.log
 
 # Environment variables
 .env*
