@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { GoogleLogin, googleLogout } from '@react-oauth/google';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
-import Profile from './Profile';
+import HomePage from './HomePage';
+import ProfilePage from './ProfilePage';
+import LoginPage from './LoginPage';
 
 function App() {
   const [user, setUser] = useState(null);
-  const [results, setResults] = useState([]);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -14,32 +15,7 @@ function App() {
     }
   }, []);
 
-  const handleSearch = async (query) => {
-    if (!user) {
-      alert('Please log in to perform a search.');
-      return;
-    }
-
-    try {
-      const response = await fetch(`http://localhost:3001/api/virustotal/domain/${query}`, {
-        headers: {
-          'Authorization': `Bearer ${user.token}`,
-        },
-      });
-      const data = await response.json();
-      if (response.ok) {
-        setResults(data);
-      } else {
-        console.error('Failed to fetch domain info:', data.error);
-        setResults([]);
-      }
-    } catch (error) {
-      console.error('Error fetching domain info:', error);
-      setResults([]);
-    }
-  };
-
-  const handleGoogleLoginSuccess = async (credentialResponse) => {
+  const handleLoginSuccess = async (credentialResponse) => {
     const { credential: token } = credentialResponse;
     try {
       const response = await fetch('http://localhost:3001/api/auth/google', {
@@ -61,68 +37,53 @@ function App() {
     }
   };
 
-  const handleGoogleLoginError = () => {
+  const handleLoginError = () => {
     console.log('Login Failed');
   };
 
   const handleLogout = () => {
-    googleLogout();
     localStorage.removeItem('user');
     setUser(null);
   };
 
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>CTI DNS Investigator</h1>
-        <div className="auth-buttons">
-          {user ? (
-            <button onClick={handleLogout}>Logout</button>
-          ) : (
-            <GoogleLogin
-              onSuccess={handleGoogleLoginSuccess}
-              onError={handleGoogleLoginError}
-            />
-          )}
-        </div>
-        <div className="search-bar">
-          <input
-            type="text"
-            placeholder="Enter domain, IP, netblock, or regex..."
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                handleSearch(e.target.value);
-              }
-            }}
+    <Router>
+      <div className="App">
+        <Routes>
+          <Route
+            path="/login"
+            element={
+              user ? (
+                <Navigate to="/" />
+              ) : (
+                <LoginPage onLoginSuccess={handleLoginSuccess} onLoginError={handleLoginError} />
+              )
+            }
           />
-        </div>
-      </header>
-      <main className="App-main">
-        {user && <Profile user={user} />}
-        <div className="results-pane">
-          <table>
-            <thead>
-              <tr>
-                <th>Timestamp</th>
-                <th>IP Address</th>
-                <th>DNS Record Type</th>
-                <th>Value</th>
-              </tr>
-            </thead>
-            <tbody>
-              {results.map((result, index) => (
-                <tr key={index}>
-                  <td>{result.timestamp}</td>
-                  <td>{result.ip}</td>
-                  <td>{result.type}</td>
-                  <td>{result.value}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </main>
-    </div>
+          <Route
+            path="/profile"
+            element={
+              user ? (
+                <ProfilePage user={user} onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
+          />
+          <Route
+            path="/"
+            element={
+              user ? (
+                <HomePage user={user} onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
+          />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 

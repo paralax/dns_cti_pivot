@@ -6,6 +6,7 @@ import { Low } from 'lowdb';
 import { JSONFile } from 'lowdb/node';
 import 'dotenv/config';
 import fetch from 'node-fetch';
+import CryptoJS from 'crypto-js';
 
 const adapter = new JSONFile('db.json');
 const db = new Low(adapter);
@@ -85,7 +86,14 @@ async function verifyUser(req, res, next) {
 
 // Endpoint to get the VirusTotal API key
 app.get('/api/user/apikey', verifyUser, (req, res) => {
-  res.status(200).json({ apiKey: req.user.virustotalApiKey });
+  const { virustotalApiKey } = req.user;
+  const apiKeyExists = !!virustotalApiKey;
+  let maskedApiKey = '';
+  if (apiKeyExists) {
+    const decryptedApiKey = CryptoJS.AES.decrypt(virustotalApiKey, process.env.ENCRYPTION_KEY).toString(CryptoJS.enc.Utf8);
+    maskedApiKey = `************${decryptedApiKey.slice(-4)}`;
+  }
+  res.status(200).json({ apiKeyExists, maskedApiKey });
 });
 
 // Endpoint to store the VirusTotal API key
@@ -95,24 +103,36 @@ app.post('/api/user/apikey', verifyUser, async (req, res) => {
     return res.status(400).json({ error: 'API key is missing' });
   }
 
+  const encryptedApiKey = CryptoJS.AES.encrypt(apiKey, process.env.ENCRYPTION_KEY).toString();
   await db.read();
   const user = db.data.users.find(u => u.googleId === req.user.googleId);
-  user.virustotalApiKey = apiKey;
+  user.virustotalApiKey = encryptedApiKey;
   await db.write();
 
   res.status(200).json({ message: 'API key saved successfully' });
 });
 
+// Endpoint to delete the VirusTotal API key
+app.delete('/api/user/apikey', verifyUser, async (req, res) => {
+  await db.read();
+  const user = db.data.users.find(u => u.googleId === req.user.googleId);
+  user.virustotalApiKey = null;
+  await db.write();
+
+  res.status(200).json({ message: 'API key deleted successfully' });
+});
+
 // Endpoint to proxy VirusTotal domain lookups
 app.get('/api/virustotal/domain/:domain', verifyUser, async (req, res) => {
   const { domain } = req.params;
-  const { virustotalApiKey } = req.user;
+  let { virustotalApiKey } = req.user;
 
   if (!virustotalApiKey) {
     return res.status(400).json({ error: 'VirusTotal API key is missing' });
   }
 
   try {
+    virustotalApiKey = CryptoJS.AES.decrypt(virustotalApiKey, process.env.ENCRYPTION_KEY).toString(CryptoJS.enc.Utf8);
     const response = await fetch(`https://www.virustotal.com/api/v3/domains/${domain}`, {
       headers: {
         'x-apikey': virustotalApiKey,
