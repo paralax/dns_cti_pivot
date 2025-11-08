@@ -13,10 +13,42 @@ test('fetches and displays DNS records on search', async () => {
   const user = { name: 'Test User', token: 'test-token' };
 
   // Mock the successful domain search fetch response
-  const mockDnsRecords = [
-    { timestamp: '2023-01-01T12:34:56.000Z', ip: '1.1.1.1', type: 'A', value: '1.1.1.1' },
-    { timestamp: '2023-01-01T12:34:57.000Z', ip: '2606:4700:4700::1111', type: 'AAAA', value: '2606:4700:4700::1111' },
-  ];
+  const mockDnsRecords =  [
+                {
+                    "expire": 1814400,
+                    "minimum": 600,
+                    "refresh": 3600,
+                    "retry": 300,
+                    "rname": "hostmaster.foo-inc.com",
+                    "serial": 2020061203,
+                    "ttl": 1799,
+                    "type": "SOA",
+                    "value": "ns1.foo.com"
+                },
+              	{
+                    "ttl": 1162,
+                    "type": "A",
+                    "value": "91.117.116.8"
+                },
+                {
+                    "ttl": 299,
+                    "type": "AAAA",
+                    "value": "2430:2fb0:f0b1:ca3b::6f"
+                },
+              	{
+                    "priority": 1,
+                    "ttl": 1545,
+                    "type": "MX",
+                    "value": "mta6.am0.foodns.net"
+                },
+                {
+                    "flag": 0,
+                    "tag": "issue",
+                    "ttl": 1799,
+                    "type": "CAA",
+                    "value": "globalsign.com"
+                }
+            ];
   fetch.mockResolvedValueOnce({
     ok: true,
     json: async () => mockDnsRecords,
