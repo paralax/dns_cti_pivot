@@ -47,3 +47,38 @@ th {
   border: 1px solid #ddd;
   border-radius: 5px;
 }
+
+.whois-section {
+  margin-bottom: 20px;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  text-align: left;
+}
+
+.whois-section pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.results-container {
+  display: flex;
+  justify-content: space-between;
+}
+
+.whois-section {
+  width: 45%;
+}
+
+.results-pane {
+  width: 50%;
+}
+
+.subdomains-section {
+  width: 45%;
+  margin-bottom: 20px;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  text-align: left;
+}

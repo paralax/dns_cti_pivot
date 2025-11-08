@@ -9,7 +9,7 @@ import fetch from 'node-fetch';
 import CryptoJS from 'crypto-js';
 
 const adapter = new JSONFile('db.json');
-const db = new Low(adapter);
+const db = new Low(adapter, { users: [] });
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -18,15 +18,6 @@ const port = 3001;
 
 app.use(cors());
 app.use(bodyParser.json());
-
-// Initialize the database
-async function initializeDatabase() {
-  await db.read();
-  db.data = db.data || { users: [] };
-  await db.write();
-}
-
-initializeDatabase();
 
 app.get('/', (req, res) => {
   res.send('Hello from the backend!');
@@ -133,7 +124,62 @@ app.get('/api/virustotal/domain/:domain', verifyUser, async (req, res) => {
 
   try {
     virustotalApiKey = CryptoJS.AES.decrypt(virustotalApiKey, process.env.ENCRYPTION_KEY).toString(CryptoJS.enc.Utf8);
-    const response = await fetch(`https://www.virustotal.com/api/v3/domains/${domain}`, {
+
+    const [domainResponse, subdomainsResponse] = await Promise.all([
+      fetch(`https://www.virustotal.com/api/v3/domains/${domain}`, {
+        headers: { 'x-apikey': virustotalApiKey },
+      }),
+      fetch(`https://www.virustotal.com/api/v3/domains/${domain}/subdomains`, {
+        headers: { 'x-apikey': virustotalApiKey },
+      }),
+    ]);
+
+    if (!domainResponse.ok) {
+      const errorData = await domainResponse.json();
+      return res.status(domainResponse.status).json(errorData);
+    }
+
+    const domainData = await domainResponse.json();
+    const { whois, whois_date, last_dns_records, last_dns_records_date } = domainData.data.attributes;
+
+    const dnsRecords = last_dns_records.map(record => ({
+      timestamp: new Date(last_dns_records_date * 1000).toISOString(),
+      ip: record.value,
+      type: record.type,
+      value: record.value,
+    }));
+
+    let subdomains = [];
+    if (subdomainsResponse.ok) {
+      const subdomainsData = await subdomainsResponse.json();
+      subdomains = subdomainsData.data.map(subdomain => subdomain.id);
+    }
+
+
+    res.status(200).json({
+      dnsRecords,
+      whois,
+      whoisDate: whois_date ? new Date(whois_date * 1000).toISOString() : null,
+      subdomains,
+    });
+  } catch (error) {
+    console.error('Error fetching data from VirusTotal:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Endpoint to proxy VirusTotal IP lookups
+app.get('/api/virustotal/ip/:ip', verifyUser, async (req, res) => {
+  const { ip } = req.params;
+  let { virustotalApiKey } = req.user;
+
+  if (!virustotalApiKey) {
+    return res.status(400).json({ error: 'VirusTotal API key is missing' });
+  }
+
+  try {
+    virustotalApiKey = CryptoJS.AES.decrypt(virustotalApiKey, process.env.ENCRYPTION_KEY).toString(CryptoJS.enc.Utf8);
+    const response = await fetch(`https://www.virustotal.com/api/v3/ip_addresses/${ip}/resolutions`, {
       headers: {
         'x-apikey': virustotalApiKey,
       },
@@ -145,14 +191,12 @@ app.get('/api/virustotal/domain/:domain', verifyUser, async (req, res) => {
     }
 
     const data = await response.json();
-    const dnsRecords = data.data.attributes.last_dns_records.map(record => ({
-      timestamp: new Date(data.data.attributes.last_dns_records_date * 1000).toISOString(),
-      ip: record.value,
-      type: record.type,
-      value: record.value,
+    const resolutions = data.data.map(resolution => ({
+      hostname: resolution.attributes.host_name,
+      last_resolved: new Date(resolution.attributes.date * 1000).toISOString(),
     }));
 
-    res.status(200).json(dnsRecords);
+    res.status(200).json({ resolutions });
   } catch (error) {
     console.error('Error fetching data from VirusTotal:', error);
     res.status(500).json({ error: 'Internal server error' });
