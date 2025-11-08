@@ -40,3 +40,10 @@ th, td {
 th {
   background-color: #f2f2f2;
 }
+
+.profile-section {
+  margin-bottom: 20px;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
