@@ -1,0 +1,21 @@
+# Git
+.git
+.gitignore
+
+# Docker
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# Node.js
+node_modules
+npm-debug.log
+.npm
+
+# Server
+server/node_modules
+server/db.json
+
+# Frontend
+cti-dns-app/node_modules
+cti-dns-app/build

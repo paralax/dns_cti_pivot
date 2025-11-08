@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: cti-dns-app/Dockerfile
+      args:
+        REACT_APP_GOOGLE_CLIENT_ID: ${REACT_APP_GOOGLE_CLIENT_ID}
+    ports:
+      - '3000:80'
+    depends_on:
+      - backend
+    networks:
+      - cti-app-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    ports:
+      - '3001:3001'
+    environment:
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+    volumes:
+      - ./server/db.json:/usr/src/app/db.json
+    networks:
+      - cti-app-network
+
+networks:
+  cti-app-network:
+    driver: bridge
