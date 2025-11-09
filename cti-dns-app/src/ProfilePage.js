@@ -1,36 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { googleLogout } from '@react-oauth/google';
 
 function ProfilePage({ user, onLogout }) {
   const [apiKey, setApiKey] = useState('');
-  const [maskedApiKey, setMaskedApiKey] = useState('');
   const [apiKeyExists, setApiKeyExists] = useState(false);
-
-  useEffect(() => {
-    const fetchApiKey = async () => {
-      try {
-        const response = await fetch('http://localhost:3001/api/user/apikey', {
-          headers: {
-            'Authorization': `Bearer ${user.token}`,
-          },
-        });
-        const data = await response.json();
-        if (response.ok) {
-          setMaskedApiKey(data.maskedApiKey || '');
-          setApiKeyExists(data.apiKeyExists);
-        } else {
-          console.error('Failed to fetch API key:', data.error);
-        }
-      } catch (error) {
-        console.error('Error fetching API key:', error);
-      }
-    };
-
-    if (user) {
-      fetchApiKey();
-    }
-  }, [user]);
 
   const handleLogout = () => {
     googleLogout();
@@ -55,17 +29,7 @@ function ProfilePage({ user, onLogout }) {
       const data = await response.json();
       if (response.ok) {
         alert('API key saved successfully');
-        // Refresh the API key
-        const newResponse = await fetch('http://localhost:3001/api/user/apikey', {
-          headers: {
-            'Authorization': `Bearer ${user.token}`,
-          },
-        });
-        const newData = await newResponse.json();
-        if (newResponse.ok) {
-          setMaskedApiKey(newData.maskedApiKey || '');
-          setApiKeyExists(newData.apiKeyExists);
-        }
+        setApiKeyExists(true);
         setApiKey('');
       } else {
         console.error('Failed to save API key:', data.error);
@@ -86,7 +50,6 @@ function ProfilePage({ user, onLogout }) {
       const data = await response.json();
       if (response.ok) {
         alert('API key deleted successfully');
-        setMaskedApiKey('');
         setApiKeyExists(false);
       } else {
         console.error('Failed to delete API key:', data.error);
@@ -108,7 +71,7 @@ function ProfilePage({ user, onLogout }) {
         <p>Welcome, {user.name}!</p>
         {apiKeyExists && (
           <div className="api-key-display">
-            <p>Your current API key: {maskedApiKey}</p>
+            <p>API key is set for this session.</p>
             <button onClick={handleApiKeyDelete}>Delete Key</button>
           </div>
         )}

@@ -6,14 +6,10 @@ import ProfilePage from './ProfilePage';
 import LoginPage from './LoginPage';
 
 function App() {
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
+  const [user, setUser] = useState(() => {
     const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-  }, []);
+    return storedUser ? JSON.parse(storedUser) : null;
+  });
 
   const handleLoginSuccess = async (credentialResponse) => {
     const { credential: token } = credentialResponse;
