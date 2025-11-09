@@ -24,9 +24,12 @@ services:
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
     volumes:
-      - ./server/db.json:/usr/src/app/db.json
+      - db-data:/usr/src/app/db.json
     networks:
       - cti-app-network
+
+volumes:
+  db-data:
 
 networks:
   cti-app-network:
