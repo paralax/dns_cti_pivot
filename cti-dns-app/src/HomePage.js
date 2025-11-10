@@ -31,9 +31,7 @@ function HomePage({ user, onLogout }) {
       }
 
       const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${user.token}`,
-        },
+        credentials: 'include',
       });
       const data = await response.json();
       if (response.ok) {
