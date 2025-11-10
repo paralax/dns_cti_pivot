@@ -11,7 +11,7 @@ function ProfilePage({ user, onLogout }) {
     const fetchApiKeyStatus = async () => {
       try {
         const response = await fetch('http://localhost:3001/api/user/apikey', {
-          headers: { 'Authorization': `Bearer ${user.token}` },
+          credentials: 'include',
         });
         const data = await response.json();
         setApiKeyExists(data.apiKeyExists);
@@ -36,9 +36,9 @@ function ProfilePage({ user, onLogout }) {
     try {
       const response = await fetch('http://localhost:3001/api/user/apikey', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.token}`,
         },
         body: JSON.stringify({ apiKey }),
       });
@@ -60,7 +60,7 @@ function ProfilePage({ user, onLogout }) {
     try {
       const response = await fetch('http://localhost:3001/api/user/apikey', {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${user.token}` },
+        credentials: 'include',
       });
       if (response.ok) {
         alert('API key deleted successfully');
@@ -78,7 +78,7 @@ function ProfilePage({ user, onLogout }) {
   const handleShowApiKey = async () => {
     try {
       const response = await fetch('http://localhost:3001/api/user/apikey/full', {
-        headers: { 'Authorization': `Bearer ${user.token}` },
+        credentials: 'include',
       });
       if (response.ok) {
         const data = await response.json();

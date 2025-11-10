@@ -23,8 +23,8 @@ function App() {
       });
       const data = await response.json();
       if (response.ok) {
-        localStorage.setItem('user', JSON.stringify(data));
-        setUser(data);
+        localStorage.setItem('user', JSON.stringify({ ...data, token }));
+        setUser({ ...data, token });
       } else {
         console.error('Google login failed:', data.error);
       }
