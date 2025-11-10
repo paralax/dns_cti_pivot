@@ -1,10 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { googleLogout } from '@react-oauth/google';
 
 function ProfilePage({ user, onLogout }) {
   const [apiKey, setApiKey] = useState('');
+  const [displayedApiKey, setDisplayedApiKey] = useState('');
   const [apiKeyExists, setApiKeyExists] = useState(false);
+
+  useEffect(() => {
+    const fetchApiKeyStatus = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/api/user/apikey', {
+          headers: { 'Authorization': `Bearer ${user.token}` },
+        });
+        const data = await response.json();
+        setApiKeyExists(data.apiKeyExists);
+      } catch (error) {
+        console.error('Error fetching API key status:', error);
+      }
+    };
+    fetchApiKeyStatus();
+  }, [user.token]);
 
   const handleLogout = () => {
     googleLogout();
@@ -26,12 +42,13 @@ function ProfilePage({ user, onLogout }) {
         },
         body: JSON.stringify({ apiKey }),
       });
-      const data = await response.json();
       if (response.ok) {
         alert('API key saved successfully');
         setApiKeyExists(true);
         setApiKey('');
+        setDisplayedApiKey('');
       } else {
+        const data = await response.json();
         console.error('Failed to save API key:', data.error);
       }
     } catch (error) {
@@ -43,15 +60,14 @@ function ProfilePage({ user, onLogout }) {
     try {
       const response = await fetch('http://localhost:3001/api/user/apikey', {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${user.token}`,
-        },
+        headers: { 'Authorization': `Bearer ${user.token}` },
       });
-      const data = await response.json();
       if (response.ok) {
         alert('API key deleted successfully');
         setApiKeyExists(false);
+        setDisplayedApiKey('');
       } else {
+        const data = await response.json();
         console.error('Failed to delete API key:', data.error);
       }
     } catch (error) {
@@ -59,6 +75,21 @@ function ProfilePage({ user, onLogout }) {
     }
   };
 
+  const handleShowApiKey = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/api/user/apikey/full', {
+        headers: { 'Authorization': `Bearer ${user.token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setDisplayedApiKey(data.apiKey);
+      } else {
+        console.error('Failed to fetch API key');
+      }
+    } catch (error) {
+      console.error('Error fetching API key:', error);
+    }
+  };
 
   return (
     <div className="profile-page">
@@ -72,7 +103,9 @@ function ProfilePage({ user, onLogout }) {
         {apiKeyExists && (
           <div className="api-key-display">
             <p>API key is set for this session.</p>
+            <button onClick={handleShowApiKey}>Show Key</button>
             <button onClick={handleApiKeyDelete}>Delete Key</button>
+            {displayedApiKey && <p>Your API Key: <code>{displayedApiKey}</code></p>}
           </div>
         )}
         <form onSubmit={handleApiKeySubmit}>

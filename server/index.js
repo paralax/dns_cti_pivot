@@ -109,12 +109,16 @@ async function verifyUser(req, res, next) {
 app.get('/api/user/apikey', verifyUser, (req, res) => {
   const { virustotalApiKey } = req.session.user;
   const apiKeyExists = !!virustotalApiKey;
-  let maskedApiKey = '';
-  if (apiKeyExists) {
-    const decryptedApiKey = CryptoJS.AES.decrypt(virustotalApiKey, process.env.ENCRYPTION_KEY).toString(CryptoJS.enc.Utf8);
-    maskedApiKey = `************${decryptedApiKey.slice(-4)}`;
+  res.status(200).json({ apiKeyExists });
+});
+
+app.get('/api/user/apikey/full', verifyUser, (req, res) => {
+  const { virustotalApiKey } = req.session.user;
+  if (!virustotalApiKey) {
+    return res.status(404).json({ error: 'API key not found' });
   }
-  res.status(200).json({ apiKeyExists, maskedApiKey });
+  const decryptedApiKey = CryptoJS.AES.decrypt(virustotalApiKey, process.env.ENCRYPTION_KEY).toString(CryptoJS.enc.Utf8);
+  res.status(200).json({ apiKey: decryptedApiKey });
 });
 
 // Endpoint to store the VirusTotal API key
