@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import { googleLogout } from '@react-oauth/google';
 
 // Helper function to find and link IPs and domain names in text
@@ -25,6 +25,14 @@ function HomePage({ user, onLogout }) {
   const [resolutions, setResolutions] = useState([]);
   const [searchType, setSearchType] = useState('');
   const [query, setQuery] = useState('');
+  const { value } = useParams();
+
+  useEffect(() => {
+    if (value) {
+      setQuery(value);
+      handleSearch(value);
+    }
+  }, [value]);
 
   const handleSearch = async (query) => {
     if (!user) {
