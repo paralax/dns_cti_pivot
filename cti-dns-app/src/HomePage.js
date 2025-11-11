@@ -9,6 +9,7 @@ function HomePage({ user, onLogout }) {
   const [subdomains, setSubdomains] = useState([]);
   const [resolutions, setResolutions] = useState([]);
   const [searchType, setSearchType] = useState('');
+  const [query, setQuery] = useState('');
 
   const handleSearch = async (query) => {
     if (!user) {
@@ -30,9 +31,7 @@ function HomePage({ user, onLogout }) {
       }
 
       const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${user.token}`,
-        },
+        credentials: 'include',
       });
       const data = await response.json();
       if (response.ok) {
@@ -85,72 +84,81 @@ function HomePage({ user, onLogout }) {
           <input
             type="text"
             placeholder="Enter domain or IP address..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
-                handleSearch(e.target.value);
+                handleSearch(query);
               }
             }}
           />
+          <button onClick={() => handleSearch(query)}>Search</button>
         </div>
       </header>
       <main className="App-main">
         <div className="results-container">
-          {searchType === 'domain' && whois && (
-            <div className="whois-section">
-              <h2>WHOIS Information</h2>
-              <p>Last updated: {new Date(whoisDate).toLocaleString()}</p>
-              <pre>{whois}</pre>
+          <div className="left-panel">
+            {searchType === 'domain' && whois && (
+              <div className="whois-panel">
+                <div className="whois-header">
+                  <h2>WHOIS Information</h2>
+                  <span>Last updated: {new Date(whoisDate).toLocaleString()}</span>
+                </div>
+                <pre className="whois-data">{whois}</pre>
+              </div>
+            )}
+          </div>
+          <div className="right-panel">
+            <div className="results-pane">
+              <h2>{searchType === 'ip' ? 'Resolutions' : 'DNS Records'}</h2>
+              <table>
+                <thead>
+                  {searchType === 'ip' ? (
+                    <tr>
+                      <th>Hostname</th>
+                      <th>Last Resolved</th>
+                    </tr>
+                  ) : (
+                    <tr>
+                      <th>Timestamp</th>
+                      <th>IP Address</th>
+                      <th>DNS Record Type</th>
+                      <th>Value</th>
+                    </tr>
+                  )}
+                </thead>
+                <tbody>
+                  {searchType === 'ip' ? (
+                    resolutions.map((resolution, index) => (
+                      <tr key={index}>
+                        <td>{resolution.hostname}</td>
+                        <td>{resolution.last_resolved}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    results.map((result, index) => (
+                      <tr key={index}>
+                        <td>{result.timestamp}</td>
+                        <td>{result.ip}</td>
+                        <td>{result.type}</td>
+                        <td><a href={`https://www.virustotal.com/gui/${result.type === 'A' || result.type === 'AAAA' ? 'ip-address' : 'domain'}/${result.value}`} target="_blank" rel="noopener noreferrer">{result.value}</a></td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
-          )}
-          {searchType === 'domain' && subdomains.length > 0 && (
-            <div className="subdomains-section">
-              <h2>Subdomains</h2>
-              <ul>
-                {subdomains.map((subdomain, index) => (
-                  <li key={index}>{subdomain}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          <div className="results-pane">
-            <h2>{searchType === 'ip' ? 'Resolutions' : 'DNS Records'}</h2>
-            <table>
-            <thead>
-              {searchType === 'ip' ? (
-                <tr>
-                  <th>Hostname</th>
-                  <th>Last Resolved</th>
-                </tr>
-              ) : (
-                <tr>
-                  <th>Timestamp</th>
-                  <th>IP Address</th>
-                  <th>DNS Record Type</th>
-                  <th>Value</th>
-                </tr>
-              )}
-            </thead>
-            <tbody>
-              {searchType === 'ip' ? (
-                resolutions.map((resolution, index) => (
-                  <tr key={index}>
-                    <td>{resolution.hostname}</td>
-                    <td>{resolution.last_resolved}</td>
-                  </tr>
-                ))
-              ) : (
-                results.map((result, index) => (
-                  <tr key={index}>
-                    <td>{result.timestamp}</td>
-                    <td>{result.ip}</td>
-                    <td>{result.type}</td>
-                    <td><a href={`https://www.virustotal.com/gui/${result.type === 'A' || result.type === 'AAAA' ? 'ip-address' : 'domain'}/${result.value}`} target="_blank" rel="noopener noreferrer">{result.value}</a></td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+            {searchType === 'domain' && subdomains.length > 0 && (
+              <div className="subdomains-section">
+                <h2>Subdomains</h2>
+                <ul>
+                  {subdomains.map((subdomain, index) => (
+                    <li key={index}>{subdomain}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
       </main>
     </div>

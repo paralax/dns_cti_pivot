@@ -19,7 +19,10 @@ app.use(session({
 }));
 const port = 3001;
 
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true,
+}));
 app.use(bodyParser.json());
 
 app.get('/', (req, res) => {
@@ -84,24 +87,10 @@ app.get('/api/virustotal/ip/:ip', verifyUser, async (req, res) => {
 
 // Middleware to verify the user
 async function verifyUser(req, res, next) {
-  const { authorization } = req.headers;
-  if (!authorization) {
-    return res.status(401).json({ error: 'Authorization header is missing' });
-  }
-  const token = authorization.split(' ')[1];
-  try {
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
-    const { sub: googleId } = ticket.getPayload();
-    if (!req.session.user || req.session.user.googleId !== googleId) {
-      return res.status(401).json({ error: 'User not authenticated' });
-    }
+  if (req.session && req.session.user) {
     next();
-  } catch (error) {
-    console.error(error);
-    res.status(401).json({ error: 'Invalid Google token' });
+  } else {
+    res.status(401).json({ error: 'User not authenticated' });
   }
 }
 
@@ -109,12 +98,16 @@ async function verifyUser(req, res, next) {
 app.get('/api/user/apikey', verifyUser, (req, res) => {
   const { virustotalApiKey } = req.session.user;
   const apiKeyExists = !!virustotalApiKey;
-  let maskedApiKey = '';
-  if (apiKeyExists) {
-    const decryptedApiKey = CryptoJS.AES.decrypt(virustotalApiKey, process.env.ENCRYPTION_KEY).toString(CryptoJS.enc.Utf8);
-    maskedApiKey = `************${decryptedApiKey.slice(-4)}`;
+  res.status(200).json({ apiKeyExists });
+});
+
+app.get('/api/user/apikey/full', verifyUser, (req, res) => {
+  const { virustotalApiKey } = req.session.user;
+  if (!virustotalApiKey) {
+    return res.status(404).json({ error: 'API key not found' });
   }
-  res.status(200).json({ apiKeyExists, maskedApiKey });
+  const decryptedApiKey = CryptoJS.AES.decrypt(virustotalApiKey, process.env.ENCRYPTION_KEY).toString(CryptoJS.enc.Utf8);
+  res.status(200).json({ apiKey: decryptedApiKey });
 });
 
 // Endpoint to store the VirusTotal API key
