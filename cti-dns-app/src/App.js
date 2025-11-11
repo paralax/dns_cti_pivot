@@ -77,6 +77,16 @@ function App() {
               )
             }
           />
+          <Route
+            path="/search/:value"
+            element={
+              user ? (
+                <HomePage user={user} onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
+          />
         </Routes>
       </div>
     </Router>
