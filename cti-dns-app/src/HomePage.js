@@ -2,6 +2,21 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { googleLogout } from '@react-oauth/google';
 
+// Helper function to find and link IPs and domain names in text
+const linkifyWhois = (text) => {
+  if (!text) {
+    return text;
+  }
+  const regex = /(\b(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}\b|\b(?:\d{1,3}\.){3}\d{1,3}\b)/g;
+  const parts = text.split(regex);
+  return parts.map((part, i) => {
+    if (part && (part.match(regex))) {
+      return <Link key={i} to={`/search/${part}`}>{part}</Link>;
+    }
+    return part;
+  });
+};
+
 function HomePage({ user, onLogout }) {
   const [results, setResults] = useState([]);
   const [whois, setWhois] = useState('');
@@ -104,7 +119,7 @@ function HomePage({ user, onLogout }) {
                   <h2>WHOIS Information</h2>
                   <span>Last updated: {new Date(whoisDate).toLocaleString()}</span>
                 </div>
-                <pre className="whois-data">{whois}</pre>
+                <pre className="whois-data">{linkifyWhois(whois)}</pre>
               </div>
             )}
           </div>
@@ -131,7 +146,7 @@ function HomePage({ user, onLogout }) {
                   {searchType === 'ip' ? (
                     resolutions.map((resolution, index) => (
                       <tr key={index}>
-                        <td>{resolution.hostname}</td>
+                        <td><Link to={`/search/${resolution.hostname}`}>{resolution.hostname}</Link></td>
                         <td>{resolution.last_resolved}</td>
                       </tr>
                     ))
@@ -139,9 +154,9 @@ function HomePage({ user, onLogout }) {
                     results.map((result, index) => (
                       <tr key={index}>
                         <td>{result.timestamp}</td>
-                        <td>{result.ip}</td>
+                        <td><Link to={`/search/${result.ip}`}>{result.ip}</Link></td>
                         <td>{result.type}</td>
-                        <td><a href={`https://www.virustotal.com/gui/${result.type === 'A' || result.type === 'AAAA' ? 'ip-address' : 'domain'}/${result.value}`} target="_blank" rel="noopener noreferrer">{result.value}</a></td>
+                        <td><Link to={`/search/${result.value}`}>{result.value}</Link></td>
                       </tr>
                     ))
                   )}
@@ -153,7 +168,7 @@ function HomePage({ user, onLogout }) {
                 <h2>Subdomains</h2>
                 <ul>
                   {subdomains.map((subdomain, index) => (
-                    <li key={index}>{subdomain}</li>
+                    <li key={index}><Link to={`/search/${subdomain}`}>{subdomain}</Link></li>
                   ))}
                 </ul>
               </div>
