@@ -87,11 +87,9 @@ app.get('/api/virustotal/ip/:ip', verifyUser, async (req, res) => {
 
 // Middleware to verify the user
 async function verifyUser(req, res, next) {
-  // if (req.session && req.session.user) {
-  //   next();
-  // } else {
-  //   res.status(401).json({ error: 'User not authenticated' });
-  // }
+  if (!req.session.user) {
+    req.session.user = {};
+  }
   next();
 }
 
