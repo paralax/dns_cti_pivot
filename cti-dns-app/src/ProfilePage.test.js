@@ -4,18 +4,20 @@ import ProfilePage from './ProfilePage';
 
 // Mock the fetch function
 global.fetch = jest.fn();
+window.alert = jest.fn();
 
 beforeEach(() => {
   fetch.mockClear();
+  window.alert.mockClear();
 });
 
-test('displays masked API key and allows updating and deleting', async () => {
+test('displays API key status and allows updating and deleting', async () => {
   const user = { name: 'Test User', token: 'test-token' };
 
   // Mock the API key fetch response
   fetch.mockResolvedValueOnce({
     ok: true,
-    json: async () => ({ apiKeyExists: true, maskedApiKey: '************1234' }),
+    json: async () => ({ apiKeyExists: true }),
   });
 
   // Mock the delete API key response
@@ -31,16 +33,16 @@ test('displays masked API key and allows updating and deleting', async () => {
     </MemoryRouter>
   );
 
-  // Wait for the masked API key to be displayed
+  // Wait for the API key status to be displayed
   await waitFor(() => {
-    expect(screen.getByText('Your current API key: ************1234')).toBeInTheDocument();
+    expect(screen.getByText('API key is set for this session.')).toBeInTheDocument();
   });
 
   const deleteButton = screen.getByText('Delete Key');
   fireEvent.click(deleteButton);
 
   await waitFor(() => {
-    expect(screen.queryByText('Your current API key: ************1234')).not.toBeInTheDocument();
+    expect(screen.queryByText('API key is set for this session.')).not.toBeInTheDocument();
   });
 
 });
