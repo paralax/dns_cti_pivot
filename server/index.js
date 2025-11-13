@@ -6,6 +6,7 @@ import 'dotenv/config';
 import fetch from 'node-fetch';
 import CryptoJS from 'crypto-js';
 import session from 'express-session';
+import db from './db.js';
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -39,10 +40,17 @@ app.post('/api/auth/google', async (req, res) => {
     });
     const { sub: googleId, email, name, picture } = ticket.getPayload();
 
+    let user = db.data.users.find(u => u.googleId === googleId);
+
+    if (!user) {
+      user = { googleId, email, name, picture, virustotalApiKey: null };
+      db.data.users.push(user);
+      await db.write();
+    }
+
     req.session.user = { googleId };
 
-    const user = { googleId, email, name, picture };
-    res.status(200).json(user);
+    res.status(200).json({ googleId, email, name, picture });
   } catch (error) {
     console.error(error);
     res.status(401).json({ error: 'Invalid Google token' });
@@ -52,7 +60,7 @@ app.post('/api/auth/google', async (req, res) => {
 // Endpoint to proxy VirusTotal IP lookups
 app.get('/api/virustotal/ip/:ip', verifyUser, async (req, res) => {
   const { ip } = req.params;
-  let { virustotalApiKey } = req.session.user;
+  let { virustotalApiKey } = req.user;
 
   if (!virustotalApiKey) {
     return res.status(400).json({ error: 'VirusTotal API key is missing' });
@@ -88,20 +96,28 @@ app.get('/api/virustotal/ip/:ip', verifyUser, async (req, res) => {
 // Middleware to verify the user
 async function verifyUser(req, res, next) {
   if (!req.session.user) {
-    req.session.user = {};
+    return res.status(401).json({ error: 'User not authenticated' });
   }
+
+  const user = db.data.users.find(u => u.googleId === req.session.user.googleId);
+
+  if (!user) {
+    return res.status(401).json({ error: 'User not found' });
+  }
+
+  req.user = user;
   next();
 }
 
 // Endpoint to get the VirusTotal API key
 app.get('/api/user/apikey', verifyUser, (req, res) => {
-  const { virustotalApiKey } = req.session.user;
+  const { virustotalApiKey } = req.user;
   const apiKeyExists = !!virustotalApiKey;
   res.status(200).json({ apiKeyExists });
 });
 
 app.get('/api/user/apikey/full', verifyUser, (req, res) => {
-  const { virustotalApiKey } = req.session.user;
+  const { virustotalApiKey } = req.user;
   if (!virustotalApiKey) {
     return res.status(404).json({ error: 'API key not found' });
   }
@@ -110,28 +126,32 @@ app.get('/api/user/apikey/full', verifyUser, (req, res) => {
 });
 
 // Endpoint to store the VirusTotal API key
-app.post('/api/user/apikey', verifyUser, (req, res) => {
+app.post('/api/user/apikey', verifyUser, async (req, res) => {
   const { apiKey } = req.body;
   if (!apiKey) {
     return res.status(400).json({ error: 'API key is missing' });
   }
 
   const encryptedApiKey = CryptoJS.AES.encrypt(apiKey, process.env.ENCRYPTION_KEY).toString();
-  req.session.user.virustotalApiKey = encryptedApiKey;
+  const user = db.data.users.find(u => u.googleId === req.user.googleId);
+  user.virustotalApiKey = encryptedApiKey;
+  await db.write();
 
   res.status(200).json({ message: 'API key saved successfully' });
 });
 
 // Endpoint to delete the VirusTotal API key
-app.delete('/api/user/apikey', verifyUser, (req, res) => {
-  req.session.user.virustotalApiKey = null;
+app.delete('/api/user/apikey', verifyUser, async (req, res) => {
+  const user = db.data.users.find(u => u.googleId === req.user.googleId);
+  user.virustotalApiKey = null;
+  await db.write();
   res.status(200).json({ message: 'API key deleted successfully' });
 });
 
 // Endpoint to proxy VirusTotal domain lookups
 app.get('/api/virustotal/domain/:domain', verifyUser, async (req, res) => {
   const { domain } = req.params;
-  let { virustotalApiKey } = req.session.user;
+  let { virustotalApiKey } = req.user;
 
   if (!virustotalApiKey) {
     return res.status(400).json({ error: 'VirusTotal API key is missing' });
