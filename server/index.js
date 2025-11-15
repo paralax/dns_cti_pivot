@@ -41,8 +41,14 @@ app.post('/api/auth/google', async (req, res) => {
 
     req.session.user = { googleId };
 
-    const user = { googleId, email, name, picture };
-    res.status(200).json(user);
+    req.session.save((err) => {
+      if (err) {
+        console.error('Error saving session:', err);
+        return res.status(500).json({ error: 'Failed to save session' });
+      }
+      const user = { googleId, email, name, picture };
+      res.status(200).json(user);
+    });
   } catch (error) {
     console.error(error);
     res.status(401).json({ error: 'Invalid Google token' });
@@ -87,11 +93,9 @@ app.get('/api/virustotal/ip/:ip', verifyUser, async (req, res) => {
 
 // Middleware to verify the user
 async function verifyUser(req, res, next) {
-  // if (req.session && req.session.user) {
-  //   next();
-  // } else {
-  //   res.status(401).json({ error: 'User not authenticated' });
-  // }
+  if (!req.session.user) {
+    req.session.user = {};
+  }
   next();
 }
 
@@ -121,13 +125,25 @@ app.post('/api/user/apikey', verifyUser, (req, res) => {
   const encryptedApiKey = CryptoJS.AES.encrypt(apiKey, process.env.ENCRYPTION_KEY).toString();
   req.session.user.virustotalApiKey = encryptedApiKey;
 
-  res.status(200).json({ message: 'API key saved successfully' });
+  req.session.save((err) => {
+    if (err) {
+      console.error('Error saving session:', err);
+      return res.status(500).json({ error: 'Failed to save API key' });
+    }
+    res.status(200).json({ message: 'API key saved successfully' });
+  });
 });
 
 // Endpoint to delete the VirusTotal API key
 app.delete('/api/user/apikey', verifyUser, (req, res) => {
   req.session.user.virustotalApiKey = null;
-  res.status(200).json({ message: 'API key deleted successfully' });
+  req.session.save((err) => {
+    if (err) {
+      console.error('Error saving session:', err);
+      return res.status(500).json({ error: 'Failed to delete API key' });
+    }
+    res.status(200).json({ message: 'API key deleted successfully' });
+  });
 });
 
 // Endpoint to proxy VirusTotal domain lookups
