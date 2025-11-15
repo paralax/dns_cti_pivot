@@ -15,62 +15,9 @@ function HomePage({ user, onLogout }) {
   const { value } = useParams();
   const navigate = useNavigate();
 
-  const handleSearch = async (searchQuery) => {
-    if (!user) {
-      alert('Please log in to perform a search.');
-      return;
-    }
-
-    if (!searchQuery) return;
-
-    navigate(`/search/${searchQuery}`);
-
-    // Simple IP address regex
-    const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
-    const isIpAddress = ipRegex.test(searchQuery);
-    setSearchType(isIpAddress ? 'ip' : 'domain');
-
-    try {
-      let url = '';
-      if (isIpAddress) {
-        url = `http://localhost:3001/api/virustotal/ip/${searchQuery}`;
-      } else {
-        url = `http://localhost:3001/api/virustotal/domain/${searchQuery}`;
-      }
-
-      const response = await fetch(url, {
-        credentials: 'include',
-      });
-      const data = await response.json();
-      if (response.ok) {
-        if (isIpAddress) {
-          setResolutions(data.resolutions);
-          setResults([]);
-          setWhois('');
-          setWhoisDate(null);
-          setSubdomains([]);
-        } else {
-          setResults(data.dnsRecords);
-          setWhois(data.whois);
-          setWhoisDate(data.whoisDate);
-          setSubdomains(data.subdomains);
-          setResolutions([]);
-        }
-      } else {
-        console.error('Failed to fetch info:', data.error);
-        setResults([]);
-        setWhois('');
-        setWhoisDate(null);
-        setSubdomains([]);
-        setResolutions([]);
-      }
-    } catch (error) {
-      console.error('Error fetching info:', error);
-      setResults([]);
-      setWhois('');
-      setWhoisDate(null);
-      setSubdomains([]);
-      setResolutions([]);
+  const handleSearch = (searchQuery) => {
+    if (searchQuery) {
+      navigate(`/search/${searchQuery}`);
     }
   };
 
@@ -80,11 +27,66 @@ function HomePage({ user, onLogout }) {
   };
 
   useEffect(() => {
+    const fetchSearch = async (searchValue) => {
+      if (!user) {
+        alert('Please log in to perform a search.');
+        return;
+      }
+
+      // Simple IP address regex
+      const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
+      const isIpAddress = ipRegex.test(searchValue);
+      setSearchType(isIpAddress ? 'ip' : 'domain');
+
+      try {
+        let url = '';
+        if (isIpAddress) {
+          url = `http://localhost:3001/api/virustotal/ip/${searchValue}`;
+        } else {
+          url = `http://localhost:3001/api/virustotal/domain/${searchValue}`;
+        }
+
+        const response = await fetch(url, {
+          credentials: 'include',
+        });
+        const data = await response.json();
+        if (response.ok) {
+          if (isIpAddress) {
+            setResolutions(data.resolutions);
+            setResults([]);
+            setWhois('');
+            setWhoisDate(null);
+            setSubdomains([]);
+          } else {
+            setResults(data.dnsRecords);
+            setWhois(data.whois);
+            setWhoisDate(data.whoisDate);
+            setSubdomains(data.subdomains);
+            setResolutions([]);
+          }
+        } else {
+          console.error('Failed to fetch info:', data.error);
+          setResults([]);
+          setWhois('');
+          setWhoisDate(null);
+          setSubdomains([]);
+          setResolutions([]);
+        }
+      } catch (error) {
+        console.error('Error fetching info:', error);
+        setResults([]);
+        setWhois('');
+        setWhoisDate(null);
+        setSubdomains([]);
+        setResolutions([]);
+      }
+    };
+
     if (value) {
       setQuery(value);
-      handleSearch(value);
+      fetchSearch(value);
     }
-  }, [value]);
+  }, [value, user]);
 
   const sortedResults = React.useMemo(() => {
     let sortableItems = [...results];

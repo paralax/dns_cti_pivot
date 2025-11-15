@@ -24,8 +24,7 @@
 }
 
 .results-pane {
-  margin: 0 auto;
-  width: 80%;
+  width: 100%;
 }
 
 table {
@@ -63,8 +62,7 @@ th {
 }
 
 .results-container {
-  display: flex;
-  gap: 20px;
+  display: block;
 }
 
 .left-panel {
