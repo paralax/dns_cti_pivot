@@ -179,10 +179,18 @@ function HomePage({ user, onLogout }) {
                     </tr>
                   ) : (
                     <tr>
-                      <th onClick={() => requestSort('timestamp')}>Timestamp</th>
-                      <th onClick={() => requestSort('ip')}>IP Address</th>
-                      <th onClick={() => requestSort('type')}>DNS Record Type</th>
-                      <th onClick={() => requestSort('value')}>Value</th>
+                      <th onClick={() => requestSort('timestamp')}>
+                        Timestamp {sortConfig.key === 'timestamp' ? (sortConfig.direction === 'ascending' ? '▲' : '▼') : ''}
+                      </th>
+                      <th onClick={() => requestSort('ip')}>
+                        IP Address {sortConfig.key === 'ip' ? (sortConfig.direction === 'ascending' ? '▲' : '▼') : ''}
+                      </th>
+                      <th onClick={() => requestSort('type')}>
+                        DNS Record Type {sortConfig.key === 'type' ? (sortConfig.direction === 'ascending' ? '▲' : '▼') : ''}
+                      </th>
+                      <th onClick={() => requestSort('value')}>
+                        Value {sortConfig.key === 'value' ? (sortConfig.direction === 'ascending' ? '▲' : '▼') : ''}
+                      </th>
                     </tr>
                   )}
                 </thead>
