@@ -13,6 +13,10 @@ yarn-debug.log*
 yarn-error.log*
 /cti-dns-app/npm_output.log
 /server/server_output.log
+cti-dns-app/srcs/App.js
+cti-dns-app.log
+server/db.js
+server.log
 
 # Environment variables
 .env*
