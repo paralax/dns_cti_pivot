@@ -66,24 +66,37 @@ app.get('/api/virustotal/ip/:ip', verifyUser, async (req, res) => {
 
   try {
     virustotalApiKey = CryptoJS.AES.decrypt(virustotalApiKey, process.env.ENCRYPTION_KEY).toString(CryptoJS.enc.Utf8);
-    const response = await fetch(`https://www.virustotal.com/api/v3/ip_addresses/${ip}/resolutions`, {
-      headers: {
-        'x-apikey': virustotalApiKey,
-      },
-    });
+    const [resolutionsResponse, ipDetailsResponse] = await Promise.all([
+      fetch(`https://www.virustotal.com/api/v3/ip_addresses/${ip}/resolutions`, {
+        headers: { 'x-apikey': virustotalApiKey },
+      }),
+      fetch(`https://www.virustotal.com/api/v3/ip_addresses/${ip}`, {
+        headers: { 'x-apikey': virustotalApiKey },
+      })
+    ]);
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      return res.status(response.status).json(errorData);
+    if (!resolutionsResponse.ok) {
+      const errorData = await resolutionsResponse.json();
+      return res.status(resolutionsResponse.status).json(errorData);
     }
 
-    const data = await response.json();
-    const resolutions = data.data.map(resolution => ({
+    const resolutionsData = await resolutionsResponse.json();
+    const resolutions = resolutionsData.data.map(resolution => ({
       hostname: resolution.attributes.host_name,
       last_resolved: new Date(resolution.attributes.date * 1000).toISOString(),
     }));
 
-    res.status(200).json({ resolutions });
+    let whois = '';
+    let whoisDate = null;
+    if (ipDetailsResponse.ok) {
+      const ipDetailsData = await ipDetailsResponse.json();
+      if (ipDetailsData.data && ipDetailsData.data.attributes) {
+        whois = ipDetailsData.data.attributes.whois;
+        whoisDate = ipDetailsData.data.attributes.whois_date ? new Date(ipDetailsData.data.attributes.whois_date * 1000).toISOString() : null;
+      }
+    }
+
+    res.status(200).json({ resolutions, whois, whoisDate });
   } catch (error) {
     console.error('Error fetching data from VirusTotal:', error);
     res.status(500).json({ error: 'Internal server error' });
