@@ -52,16 +52,16 @@ function HomePage({ user, onLogout }) {
         const data = await response.json();
         if (response.ok) {
           if (isIpAddress) {
-            setResolutions(data.resolutions);
+            setResolutions(data.resolutions || []);
+            setWhois(data.whois || '');
+            setWhoisDate(data.whoisDate || null);
             setResults([]);
-            setWhois('');
-            setWhoisDate(null);
             setSubdomains([]);
           } else {
-            setResults(data.dnsRecords);
-            setWhois(data.whois);
-            setWhoisDate(data.whoisDate);
-            setSubdomains(data.subdomains);
+            setResults(data.dnsRecords || []);
+            setWhois(data.whois || '');
+            setWhoisDate(data.whoisDate || null);
+            setSubdomains(data.subdomains || []);
             setResolutions([]);
           }
         } else {
@@ -165,55 +165,64 @@ function HomePage({ user, onLogout }) {
         <div className="results-container">
           <div className="tabs">
             <button className={activeTab === 'dns' ? 'active' : ''} onClick={() => setActiveTab('dns')}>DNS</button>
-            {searchType === 'domain' && <button className={activeTab === 'whois' ? 'active' : ''} onClick={() => setActiveTab('whois')}>WHOIS</button>}
+            <button className={activeTab === 'whois' ? 'active' : ''} onClick={() => setActiveTab('whois')}>WHOIS</button>
           </div>
           {activeTab === 'dns' && (
             <div className="results-pane">
-              <h2>{searchType === 'ip' ? 'Resolutions' : 'DNS Records'}</h2>
-              <table>
-                <thead>
-                  {searchType === 'ip' ? (
-                    <tr>
-                      <th>Hostname</th>
-                      <th>Last Resolved</th>
-                    </tr>
-                  ) : (
-                    <tr>
-                      <th onClick={() => requestSort('timestamp')}>
-                        Timestamp {sortConfig.key === 'timestamp' ? (sortConfig.direction === 'ascending' ? '▲' : '▼') : ''}
-                      </th>
-                      <th onClick={() => requestSort('ip')}>
-                        IP Address {sortConfig.key === 'ip' ? (sortConfig.direction === 'ascending' ? '▲' : '▼') : ''}
-                      </th>
-                      <th onClick={() => requestSort('type')}>
-                        DNS Record Type {sortConfig.key === 'type' ? (sortConfig.direction === 'ascending' ? '▲' : '▼') : ''}
-                      </th>
-                      <th onClick={() => requestSort('value')}>
-                        Value {sortConfig.key === 'value' ? (sortConfig.direction === 'ascending' ? '▲' : '▼') : ''}
-                      </th>
-                    </tr>
-                  )}
-                </thead>
-                <tbody>
-                  {searchType === 'ip' ? (
-                    resolutions.map((resolution, index) => (
-                      <tr key={index}>
-                        <td>{linkify(resolution.hostname)}</td>
-                        <td>{resolution.last_resolved}</td>
+              {searchType === 'ip' && resolutions.length > 0 && (
+                <div className="resolutions-section">
+                  <h2>Resolutions</h2>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Hostname</th>
+                        <th>Last Resolved</th>
                       </tr>
-                    ))
-                  ) : (
-                    sortedResults.map((result, index) => (
-                      <tr key={index}>
-                        <td>{result.timestamp}</td>
-                        <td>{linkify(result.ip)}</td>
-                        <td>{result.type}</td>
-                        <td>{linkify(result.value)}</td>
+                    </thead>
+                    <tbody>
+                      {resolutions.map((resolution, index) => (
+                        <tr key={index}>
+                          <td>{linkify(resolution.hostname)}</td>
+                          <td>{resolution.last_resolved}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              {searchType === 'domain' && sortedResults.length > 0 && (
+                <div className="dns-records-section">
+                  <h2>DNS Records</h2>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th onClick={() => requestSort('timestamp')}>
+                          Timestamp {sortConfig.key === 'timestamp' ? (sortConfig.direction === 'ascending' ? '▲' : '▼') : ''}
+                        </th>
+                        <th onClick={() => requestSort('ip')}>
+                          IP Address {sortConfig.key === 'ip' ? (sortConfig.direction === 'ascending' ? '▲' : '▼') : ''}
+                        </th>
+                        <th onClick={() => requestSort('type')}>
+                          DNS Record Type {sortConfig.key === 'type' ? (sortConfig.direction === 'ascending' ? '▲' : '▼') : ''}
+                        </th>
+                        <th onClick={() => requestSort('value')}>
+                          Value {sortConfig.key === 'value' ? (sortConfig.direction === 'ascending' ? '▲' : '▼') : ''}
+                        </th>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    </thead>
+                    <tbody>
+                      {sortedResults.map((result, index) => (
+                        <tr key={index}>
+                          <td>{result.timestamp}</td>
+                          <td>{linkify(result.ip)}</td>
+                          <td>{result.type}</td>
+                          <td>{linkify(result.value)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
               {searchType === 'domain' && subdomains.length > 0 && (
                 <div className="subdomains-section">
                   <h2>Subdomains</h2>
@@ -226,11 +235,11 @@ function HomePage({ user, onLogout }) {
               )}
             </div>
           )}
-          {activeTab === 'whois' && searchType === 'domain' && whois && (
+          {activeTab === 'whois' && whois && (
             <div className="whois-panel">
               <div className="whois-header">
                 <h2>WHOIS Information</h2>
-                <span>Last updated: {new Date(whoisDate).toLocaleString()}</span>
+                {whoisDate && <span>Last updated: {new Date(whoisDate).toLocaleString()}</span>}
               </div>
               <pre className="whois-data">{linkify(whois)}</pre>
             </div>
